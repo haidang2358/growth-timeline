@@ -4,7 +4,7 @@ A beautiful, interactive website to track your daughter's growth timeline with p
 
 ## Features
 
-- 📅 **Timeline View**: Visual timeline showing all entries from March 2023 onwards
+- 📅 **Timeline View**: Automatically generated monthly cards from March 2023 through today, grouped by year for quick navigation
 - 📸 **Photo Support**: Add multiple photos for each entry
 - 📝 **Notes**: Write special memories and milestones for each month
 - 💾 **Local Storage**: All data is saved locally in your browser
