@@ -51,6 +51,27 @@ header h1 {
     padding-left: 40px;
 }
 
+.timeline-help {
+    text-align: center;
+    padding: 30px 20px;
+    margin-bottom: 30px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 192, 203, 0.35));
+    border: 2px dashed rgba(255, 105, 180, 0.25);
+    color: #b83268;
+    box-shadow: 0 10px 30px rgba(255, 105, 180, 0.12);
+}
+
+.timeline-help h3 {
+    font-size: 1.4em;
+    margin-bottom: 8px;
+}
+
+.timeline-help p {
+    font-size: 1em;
+    color: #c15b86;
+}
+
 .timeline::before {
     content: '';
     position: absolute;
@@ -62,9 +83,18 @@ header h1 {
     border-radius: 2px;
 }
 
+.timeline-year {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #FF5C97;
+    margin: 30px 0 18px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 .timeline-entry {
     position: relative;
-    margin-bottom: 40px;
+    margin-bottom: 30px;
     padding: 20px;
     background: #f8f9fa;
     border-radius: 15px;
@@ -91,11 +121,34 @@ header h1 {
     box-shadow: 0 0 0 3px #FF69B4;
 }
 
+.timeline-entry.empty {
+    background: rgba(255, 240, 245, 0.85);
+    border: 2px dashed rgba(255, 105, 180, 0.35);
+    box-shadow: none;
+}
+
+.timeline-entry.empty:hover {
+    transform: translateX(6px);
+    box-shadow: 0 6px 20px rgba(255, 105, 180, 0.2);
+}
+
+.timeline-entry.empty::before {
+    background: #FFC6DD;
+    box-shadow: 0 0 0 3px rgba(255, 198, 221, 0.8);
+}
+
+.timeline-entry.upcoming .entry-age {
+    background: rgba(255, 105, 180, 0.12);
+    color: #c34a7c;
+}
+
 .entry-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .entry-date {
@@ -118,6 +171,11 @@ header h1 {
     margin-bottom: 15px;
 }
 
+.entry-preview.empty {
+    color: #a35d7f;
+    font-style: italic;
+}
+
 .entry-photos-preview {
     display: flex;
     gap: 10px;
@@ -131,6 +189,15 @@ header h1 {
     object-fit: cover;
     border-radius: 8px;
     border: 2px solid #ddd;
+}
+
+.photo-thumb.more-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e9ecef;
+    color: #666;
+    font-weight: 700;
 }
 
 .add-entry-btn {
@@ -291,6 +358,13 @@ header h1 {
     margin-top: 20px;
 }
 
+.detail-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
 .btn {
     padding: 12px 24px;
     border: none;
@@ -318,6 +392,10 @@ header h1 {
 
 .btn-secondary:hover {
     background: #dee2e6;
+}
+
+.add-memory-btn {
+    margin-top: 15px;
 }
 
 /* Detail Modal */
@@ -364,6 +442,12 @@ header h1 {
     
     .timeline {
         padding-left: 30px;
+    }
+
+    .timeline-year {
+        margin-top: 25px;
+        font-size: 1.2em;
+        letter-spacing: 0.05em;
     }
     
     .timeline::before {
