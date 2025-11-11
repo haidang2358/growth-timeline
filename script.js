@@ -14,9 +14,10 @@ let selectedPhotos = [];
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadEntries();
+    populateMonthSelect();
+    configureYearInput();
     renderTimeline();
     setupEventListeners();
-    populateMonthSelect();
 });
 
 function setupEventListeners() {
@@ -61,6 +62,15 @@ function populateMonthSelect() {
     });
 }
 
+function configureYearInput() {
+    const yearInput = document.getElementById('entryYear');
+    if (!yearInput) return;
+
+    const currentYear = new Date().getFullYear();
+    yearInput.setAttribute('min', BIRTH_YEAR);
+    yearInput.setAttribute('max', currentYear + 10);
+}
+
 function calculateAge(month, year) {
     const birthDate = new Date(BIRTH_YEAR, BIRTH_MONTH - 1);
     const entryDate = new Date(year, month - 1);
@@ -80,30 +90,50 @@ function calculateAge(month, year) {
     return `${years} year${years > 1 ? 's' : ''}, ${remainingMonths} month${remainingMonths > 1 ? 's' : ''} old`;
 }
 
-function openEntryModal(entryId = null) {
+function openEntryModal(entryId = null, presetMonth = null, presetYear = null) {
+    if (!entryId && presetMonth && presetYear) {
+        const existingEntry = entries.find(e => e.month === presetMonth && e.year === presetYear);
+        if (existingEntry) {
+            openEntryModal(existingEntry.id);
+            return;
+        }
+    }
+
     currentEditingId = entryId;
     const modal = document.getElementById('entryModal');
     const form = document.getElementById('entryForm');
     const title = document.getElementById('modalTitle');
+    const monthSelect = document.getElementById('entryMonth');
+    const yearInput = document.getElementById('entryYear');
+    const noteInput = document.getElementById('entryNote');
     
     if (entryId) {
         const entry = entries.find(e => e.id === entryId);
         if (entry) {
             title.textContent = 'Edit Entry';
-            document.getElementById('entryMonth').value = entry.month;
-            document.getElementById('entryYear').value = entry.year;
-            document.getElementById('entryNote').value = entry.note || '';
+            monthSelect.value = entry.month;
+            yearInput.value = entry.year;
+            noteInput.value = entry.note || '';
             selectedPhotos = entry.photos ? [...entry.photos] : [];
             renderPhotoPreview();
         }
     } else {
-        title.textContent = 'Add New Entry';
+        title.textContent = 'Add New Memory';
         form.reset();
         selectedPhotos = [];
         renderPhotoPreview();
+
+        const now = new Date();
+        const defaultMonth = presetMonth || now.getMonth() + 1;
+        const defaultYear = presetYear || now.getFullYear();
+
+        monthSelect.value = defaultMonth;
+        yearInput.value = Math.max(defaultYear, BIRTH_YEAR);
+        noteInput.value = '';
     }
     
     modal.style.display = 'block';
+    monthSelect.focus();
 }
 
 function closeEntryModal() {
@@ -165,91 +195,170 @@ function handleFormSubmit(event) {
         alert('Please select both month and year');
         return;
     }
-    
+
+    const existingEntry = entries.find(e => e.month === month && e.year === year);
+    if (!currentEditingId && existingEntry) {
+        const replace = confirm('A memory for this month already exists. Replace it with your new details?');
+        if (!replace) {
+            return;
+        }
+        currentEditingId = existingEntry.id;
+        if (selectedPhotos.length === 0 && existingEntry.photos) {
+            selectedPhotos = [...existingEntry.photos];
+        }
+    }
+
+    const entryId = currentEditingId || Date.now().toString();
     const entry = {
-        id: currentEditingId || Date.now().toString(),
+        id: entryId,
         month,
         year,
         note,
         photos: selectedPhotos,
-        createdAt: currentEditingId ? 
+        createdAt: currentEditingId ?
             entries.find(e => e.id === currentEditingId)?.createdAt || Date.now() :
             Date.now()
     };
-    
-    if (currentEditingId) {
-        const index = entries.findIndex(e => e.id === currentEditingId);
-        if (index !== -1) {
-            entries[index] = entry;
-        }
+
+    const index = entries.findIndex(e => e.id === entryId);
+    if (index !== -1) {
+        entries[index] = entry;
     } else {
         entries.push(entry);
     }
-    
+
     saveEntries();
     renderTimeline();
     closeEntryModal();
+}
+
+function generateTimelinePeriods() {
+    const periods = [];
+    const start = new Date(BIRTH_YEAR, BIRTH_MONTH - 1, 1);
+    const now = new Date();
+    let end = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    if (entries.length > 0) {
+        const latestEntryDate = entries.reduce((latest, entry) => {
+            const entryDate = new Date(entry.year, entry.month - 1, 1);
+            return entryDate > latest ? entryDate : latest;
+        }, new Date(start));
+        if (latestEntryDate > end) {
+            end = latestEntryDate;
+        }
+    }
+
+    const cursor = new Date(end);
+    while (cursor >= start) {
+        periods.push({
+            month: cursor.getMonth() + 1,
+            year: cursor.getFullYear()
+        });
+        cursor.setMonth(cursor.getMonth() - 1);
+    }
+
+    return periods;
+}
+
+function createYearMarker(year) {
+    const marker = document.createElement('div');
+    marker.className = 'timeline-year-marker';
+    marker.innerHTML = `<span class="year-badge">${year}</span>`;
+    return marker;
 }
 
 function renderTimeline() {
     const timeline = document.getElementById('timeline');
     timeline.innerHTML = '';
     
+    const periods = generateTimelinePeriods();
+
     if (entries.length === 0) {
-        timeline.innerHTML = `
-            <div style="text-align: center; padding: 40px; color: #999;">
-                <p style="font-size: 1.2em; margin-bottom: 10px;">No entries yet</p>
-                <p>Click the + button to add your first entry!</p>
-            </div>
+        const intro = document.createElement('div');
+        intro.className = 'timeline-intro';
+        intro.innerHTML = `
+            <h3>Start capturing her journey</h3>
+            <p>Select any month below to add notes and photos.</p>
         `;
-        return;
+        timeline.appendChild(intro);
     }
-    
-    // Sort entries by year and month (newest first)
-    const sortedEntries = [...entries].sort((a, b) => {
-        if (a.year !== b.year) return b.year - a.year;
-        return b.month - a.month;
-    });
-    
-    sortedEntries.forEach(entry => {
-        const entryEl = createEntryElement(entry);
+
+    let currentYearMarker = null;
+    const currentDate = new Date();
+
+    periods.forEach(({ month, year }) => {
+        if (year !== currentYearMarker) {
+            currentYearMarker = year;
+            timeline.appendChild(createYearMarker(year));
+        }
+
+        const entry = entries.find(e => e.month === month && e.year === year);
+        const entryEl = createEntryElement(entry, month, year, currentDate);
         timeline.appendChild(entryEl);
     });
 }
 
-function createEntryElement(entry) {
+function createEntryElement(entry, month, year, currentDate) {
     const div = document.createElement('div');
     div.className = 'timeline-entry';
-    div.onclick = () => openDetailModal(entry.id);
-    
-    const age = calculateAge(entry.month, entry.year);
-    const dateStr = `${months[entry.month - 1]} ${entry.year}`;
-    const previewNote = entry.note ? 
-        (entry.note.length > 150 ? entry.note.substring(0, 150) + '...' : entry.note) :
-        'No note added';
-    
-    let photosHtml = '';
-    if (entry.photos && entry.photos.length > 0) {
-        const previewPhotos = entry.photos.slice(0, 3);
-        photosHtml = '<div class="entry-photos-preview">';
-        previewPhotos.forEach(photo => {
-            photosHtml += `<img src="${photo.data}" alt="Photo" class="photo-thumb">`;
-        });
-        if (entry.photos.length > 3) {
-            photosHtml += `<div class="photo-thumb" style="display: flex; align-items: center; justify-content: center; background: #e9ecef; color: #666; font-weight: bold;">+${entry.photos.length - 3}</div>`;
-        }
-        photosHtml += '</div>';
+
+    const age = calculateAge(month, year);
+    const dateStr = `${months[month - 1]} ${year}`;
+    const isCurrentMonth = year === currentDate.getFullYear() && month === currentDate.getMonth() + 1;
+
+    if (isCurrentMonth) {
+        div.classList.add('current');
     }
-    
-    div.innerHTML = `
-        <div class="entry-header">
-            <div class="entry-date">${dateStr}</div>
-            <div class="entry-age">${age}</div>
-        </div>
-        <div class="entry-preview">${previewNote}</div>
-        ${photosHtml}
-    `;
-    
+
+    if (entry) {
+        div.onclick = () => openDetailModal(entry.id);
+
+        const previewNote = entry.note ?
+            (entry.note.length > 150 ? entry.note.substring(0, 150) + '...' : entry.note) :
+            'No note added yet';
+
+        let photosHtml = '';
+        if (entry.photos && entry.photos.length > 0) {
+            const previewPhotos = entry.photos.slice(0, 3);
+            photosHtml = '<div class="entry-photos-preview">';
+            previewPhotos.forEach(photo => {
+                photosHtml += `<img src="${photo.data}" alt="Photo" class="photo-thumb">`;
+            });
+            if (entry.photos.length > 3) {
+                photosHtml += `<div class="photo-thumb photo-thumb-more">+${entry.photos.length - 3}</div>`;
+            }
+            photosHtml += '</div>';
+        }
+
+        div.innerHTML = `
+            <div class="entry-header">
+                <div class="entry-date">${dateStr}</div>
+                <div class="entry-age">${age}</div>
+            </div>
+            <div class="entry-preview">${previewNote}</div>
+            ${photosHtml}
+        `;
+    } else {
+        div.classList.add('empty');
+        div.onclick = () => openEntryModal(null, month, year);
+        div.innerHTML = `
+            <div class="entry-header">
+                <div class="entry-date">${dateStr}</div>
+                <div class="entry-age">${age}</div>
+            </div>
+            <div class="entry-preview empty">No memory captured yet. Click to add one!</div>
+            <div class="entry-actions">
+                <button type="button" class="btn btn-primary btn-small">Add Memory</button>
+            </div>
+        `;
+
+        const addButton = div.querySelector('button');
+        addButton.onclick = (event) => {
+            event.stopPropagation();
+            openEntryModal(null, month, year);
+        };
+    }
+
     return div;
 }
 
